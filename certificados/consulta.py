@@ -10,12 +10,35 @@ import re
 import time
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from .config import TIPOS_DOCUMENTO, URL_CONSULTA
 
 # El sitio del Estado a veces tiene problemas de cadena de certificados;
 # usamos verify=False y silenciamos solo esa advertencia.
 requests.packages.urllib3.disable_warnings()
+
+# Timeout por defecto (conexion, lectura) en segundos.
+TIMEOUT_POR_DEFECTO = (15, 45)
+
+
+def _nueva_sesion() -> requests.Session:
+    """Crea una sesion con reintentos automaticos ante fallos de red."""
+    sesion = requests.Session()
+    sesion.headers["User-Agent"] = "Mozilla/5.0"
+    reintentos = Retry(
+        total=3,
+        connect=3,
+        read=3,
+        backoff_factor=1.5,  # espera 0s, 1.5s, 3s, ... entre intentos
+        status_forcelist=(500, 502, 503, 504),
+        allowed_methods=("GET", "POST"),
+    )
+    adaptador = HTTPAdapter(max_retries=reintentos)
+    sesion.mount("https://", adaptador)
+    sesion.mount("http://", adaptador)
+    return sesion
 
 
 def validar_cedula(cedula) -> str:
@@ -37,7 +60,7 @@ def _campo_oculto(html: str, name: str) -> str:
     return m.group(1) if m else ""
 
 
-def consultar_cedula(cedula, tipo_documento: str = "CC", timeout: int = 30) -> dict:
+def consultar_cedula(cedula, tipo_documento: str = "CC", timeout=TIMEOUT_POR_DEFECTO) -> dict:
     """Consulta el Ministerio de Trabajo a partir de una cedula.
 
     Devuelve un dict con:
@@ -54,8 +77,7 @@ def consultar_cedula(cedula, tipo_documento: str = "CC", timeout: int = 30) -> d
             f"tipo_documento invalido {tipo_documento!r}. Use uno de {list(TIPOS_DOCUMENTO)}"
         )
 
-    sesion = requests.Session()
-    sesion.headers["User-Agent"] = "Mozilla/5.0"
+    sesion = _nueva_sesion()
 
     inicio = time.perf_counter()
 

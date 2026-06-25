@@ -9,6 +9,7 @@ from datetime import date
 from typing import Callable
 
 import pandas as pd
+import requests
 
 from .config import COL_VENCIMIENTO, COLUMNAS_ENTRADA, COLUMNAS_SALIDA, MESES_ALERTA
 from .consulta import consultar_cedula, validar_cedula
@@ -59,7 +60,18 @@ def evaluar_cedula(cedula, tipo_documento: str = "CC", hoy: date | None = None,
             "_segundos": 0.0,
         }
 
-    consulta = consultar_cedula(cedula_limpia, tipo_documento=tipo_documento)
+    try:
+        consulta = consultar_cedula(cedula_limpia, tipo_documento=tipo_documento)
+    except requests.exceptions.RequestException as e:
+        return {
+            "TIPO": "",
+            COL_VENCIMIENTO["ALTURAS"]: "",
+            COL_VENCIMIENTO["ESPACIOS"]: "",
+            "OBSERVACIONES": f"Error de conexion con el Ministerio ({type(e).__name__})",
+            "_estado": "ERROR",
+            "_segundos": 0.0,
+        }
+
     if not consulta["encontrado"]:
         return {
             "TIPO": "NINGUNO",
