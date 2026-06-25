@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Archivos generados
+*.xlsx
+*.xls
+certificados_resultado.xlsx
+
+# Notebooks / prototipos locales
+.ipynb_checkpoints/
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
